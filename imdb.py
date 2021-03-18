@@ -29,6 +29,11 @@ def makeDirectory(path):
 
 def initialize(url, browser=None):
     if(browser == None):
+        # chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument('--headless')
+        # chrome_options.add_argument('--no-sandbox')
+        # chrome_options.add_argument('--disable-dev-shm-usage')
+
         browser = webdriver.Chrome(driver_path)
         browser.implicitly_wait(3)
     browser.get(url)
@@ -181,6 +186,11 @@ def parseAllMoviesInPage(driver, frm, try_cnt = 0):
         movie_elem_arr = driver.find_elements_by_class_name("lister-item")
         print(len(movie_elem_arr))
 
+        if(len(movie_elem_arr) == 0):
+            print(".................... Maybe connection error :: trying again --- try < {} >".format(try_cnt+1))
+            driver.refresh()
+            return parseAllMoviesInPage(driver, try_cnt+1)
+
         movie_arr = []
         cnt = 0
         for movie_elem in movie_elem_arr:
@@ -194,10 +204,13 @@ def parseAllMoviesInPage(driver, frm, try_cnt = 0):
     
     except:
         print(".................... Maybe connection error :: trying again --- try < {} >".format(try_cnt+1))
+        driver.refresh()
         return parseAllMoviesInPage(driver, try_cnt+1)
 
 
 ######################################################################################################################
+# 49001 - 49250 >> https://www.imdb.com/search/title/?adult=include&count=250&after=WzQ5MjUyLCJ0dDI5MDA4MjIiLDQ5MjUxXQ%3D%3D&ref_=adv_nxt
+# url_root = "https://www.imdb.com/search/title/?adult=include&count=250&after=WzQ5MjUyLCJ0dDI5MDA4MjIiLDQ5MjUxXQ%3D%3D&ref_=adv_nxt"
 url_root = "https://www.imdb.com/search/title/?adult=include&count=250"
 save_path = "IMDB/SUMMARY_DATA"
 makeDirectory(save_path)
@@ -207,6 +220,7 @@ driver = initialize(url_root)
 
 
 ############################
+# frm = 49001 + 250
 frm = 1
 rng = 250
 cnt = 0
@@ -226,8 +240,11 @@ while(True):
 
 
     next_button = driver.find_element_by_link_text("Next »")
-    # print(next_button)
+    print("{} - {}".format(frm, frm + rng - 1), end = " >> ")
+    print(next_button.get_attribute("href"))
     if(next_button != None):
+        print("{} - {}".format(frm, frm + rng - 1), end = " >> ")
+        print(next_button.get_attribute("href"))
         performClick(next_button)
     
     frm += 250
