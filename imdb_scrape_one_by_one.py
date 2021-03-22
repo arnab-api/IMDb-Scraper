@@ -27,7 +27,12 @@ def makeDirectory(path):
 def initialize(url, browser=None):
     if(browser == None):
         print("creating browser for the first and last time")
-        browser = webdriver.Chrome(driver_path)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--headless')
+        # chrome_options.add_argument('--no-sandbox')
+        # chrome_options.add_argument('--disable-dev-shm-usage')
+
+        browser = webdriver.Chrome(driver_path, chrome_options=chrome_options)
         browser.implicitly_wait(3)
 
     browser.get(url)
@@ -147,7 +152,7 @@ def processOneMovie(movie_url, folder_path, driver, try_cnt = 0):
 url_root = "https://www.imdb.com/"
 save_path = "MOVIES"
 summary_path = "SUMMARY_DATA"
-frm = 1001
+frm = 1
 rng = 250
 #############################################################################################################
 
@@ -179,8 +184,8 @@ while(True):
     process_cnt = 0
 
     st = 0
-    if(frm == 1001):
-        st = 67
+    # if(frm == 1001):
+    #     st = 67
 
     for idx in range(st, len(movie_arr)):
         movie = movie_arr[idx]
