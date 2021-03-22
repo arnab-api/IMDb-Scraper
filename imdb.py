@@ -247,4 +247,4 @@ while(True):
         print(next_button.get_attribute("href"))
         performClick(next_button)
     
-    frm += 250
+    frm += rng
