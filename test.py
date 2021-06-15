@@ -20,9 +20,3 @@
 
 
 # print(dct["url"].split('/')[-2])
-
-import googletrans
-
-translator = googletrans.Translator()
-# print(translator.translate(" রোমান ক্যাথলিক পাদ্রি সম্প্রদায় ও পবিত্র ক্রুশ সন্ন্যাস সংঘ কর্তৃক ১৯৪৯ খ্রিষ্টাব্দের ৩ নভেম্বর ঢাকার লক্ষ্মীবাজারে সেন্ট গ্রেগরিজ কলেজ নামে কলেজটি প্রতিষ্ঠিত হয়"))
-print(translator.translate('안녕하세요.'))

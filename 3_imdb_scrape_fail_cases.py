@@ -108,6 +108,47 @@ def getCastInfo(page_soup):
     # print(len(cast_and_character))
     return cast_and_character
 
+def checkvalidtext(txt):
+    if(txt.isspace()):
+        return False
+    arr = ["|", "See more", "\u00bb", ","]
+    if txt in arr:
+        return False
+    if txt.strip() in arr:
+        return False
+    return True
+
+
+def filter(arr):
+    ret = []
+    attr = "#"
+    for val in arr:
+        if(checkvalidtext(val) == False):
+            continue
+        if(val[-1] == ":"):
+            attr = val[0:-1]
+            continue
+        ret.append(val.strip())
+    return attr, ret 
+
+def parseDetailInfo(page_soup):
+    detail_elem = page_soup.find("div", {
+        'class': 'article',
+        'id': "titleDetails"
+    })
+    divs = detail_elem.findAll("div")
+    
+    details = {}
+    for div in divs:
+        vrr = div.findAll()
+        attr, value = filter(div.findAll(text=True))
+        if(attr == "Official Sites" or attr == "#" or attr == "Color"):
+            continue
+        # print(attr, " >>>>>> ", value)
+        details[attr] = value
+
+    return details
+
 
 def processOneMovie(movie_url, folder_path, driver, try_cnt = 0):
 
@@ -128,6 +169,8 @@ def processOneMovie(movie_url, folder_path, driver, try_cnt = 0):
             meta_data["cast_and_character"] = getCastInfo(page_soup)
         except:
             meta_data["cast_and_character"] = "Error loading cast information -- checked {}".format(datetime.datetime.now())
+        
+        meta_data['details'] = parseDetailInfo(page_soup)
 
         movie_id = meta_data["url"].split('/')[-2]
         movie_name = meta_data["name"]
@@ -139,30 +182,46 @@ def processOneMovie(movie_url, folder_path, driver, try_cnt = 0):
         with open(folder_path + "/" + file_name, "w") as f:
             json.dump(meta_data, f)
             print("saved movie < {} > to < {} >".format(movie_name, file_name))
+
+        return True
     
     except:
+        if(try_cnt == 5):
+            print("Error loading movie -- skip this")
+            return False
+
         print("maybe temporary internet connection problem. trying again < {} >".format(try_cnt + 1))
         driver.refresh()
         time.sleep(2)
-        processOneMovie(movie_url, folder_path, driver, try_cnt+1)
+        return processOneMovie(movie_url, folder_path, driver, try_cnt+1)
 
 
 
 #############################################################################################################
 url_root = "https://www.imdb.com/"
 save_path = "MOVIES"
-summary_path = "SUMMARY_DATA"
-frm = 1
+summary_path = "IMDB_SUMMARY/SUMMARY_DATA"
+frm = 100000 + 1
 rng = 250
+limit = 150000 # set it to -1 for all processing
+
 #############################################################################################################
 
 makeDirectory(save_path)
 summary_files = sorted(os.listdir(summary_path))
 driver = initialize(url_root)
 
-
 print(summary_files)
 # for summary in summary_files:
+
+try:
+    with open("fail_cases.json", "r") as f:
+        fail_cases = json.load(f)
+except:
+    print("Could not find fail_cases.json -- initializing with empty folder")
+    fail_cases = []
+
+
 while(True):
     summary = "{} - {}.json".format(frm, frm+rng-1)
 
@@ -171,11 +230,11 @@ while(True):
         break
 
 
-    print("Now processing < {} >".format(summary))
+    print("Checking < {} >".format(summary))
 
     folder_name = summary.split('.')[0]
     folder_path = save_path + "/" + folder_name
-    makeDirectory(folder_path)
+    # makeDirectory(folder_path)
 
     with open(summary_path + "/" + summary) as f:
         movie_arr = json.load(f)
@@ -184,15 +243,34 @@ while(True):
     process_cnt = 0
 
     st = 0
-    # if(frm == 1001):
-    #     st = 67
+    # if(frm == 65251):
+    #     st = 173
 
     for idx in range(st, len(movie_arr)):
         movie = movie_arr[idx]
-        # print(movie["link"])
+
+        if(movie not in fail_cases):
+            continue
+
+        print("checking url {} to get movie {} -- folder path {}".format(movie["link"], movie["title"], folder_path))
+
         movie_url = url_root + movie["link"]
-        processOneMovie(movie_url, folder_path, driver)
-        process_cnt += 1
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>> processed {} of {} --- of :: {}".format(st + process_cnt, len(movie_arr), summary))
+        success = processOneMovie(movie_url, folder_path, driver)
+
+        if(success == True):
+            print("!!! SUCCESSFULL !!! saving {} to {}".format(movie["title"], folder_path))
+            while(movie in fail_cases):
+                fail_cases.remove(movie)
+            with open("fail_cases.json", "w") as f:
+                json.dump(fail_cases, f)
+
+        # process_cnt += 1
+        # print(">>>>>>>>>>>>>>>>>>>>>>>>>> processed {} of {} --- of :: {}".format(st + process_cnt, len(movie_arr), summary))
     
     frm += rng
+
+    if limit == -1:
+        continue
+    elif (frm > limit):
+        break
+ 
